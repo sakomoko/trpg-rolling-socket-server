@@ -29,7 +29,7 @@ class Client
   to: () ->
     @
 
-RoomModel = require('room-model').RoomModel
+RoomModel = require('../lib/room-model').RoomModel
 mongoose = require "mongoose"
 mongoose.connect('mongodb://localhost/test')
 

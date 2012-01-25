@@ -1,5 +1,5 @@
-Message = require('./message-schema')
-User = require('./user-schema')
+Message = require('./schema/message-schema')
+User = require('./schema/user-schema')
 class RoomModel
   constructor: (@id, @message = Message, @user = User, @bufferSize=50) ->
     @joinedMembers = {}
