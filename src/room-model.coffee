@@ -33,11 +33,16 @@ class RoomModel
 
   joinMember: (client, user) ->
     throw new Error("user id or name undefined.") unless user.id and user.name
-    data =
-      id: user.id
-      name: user.name
-      socket_token: user.socket_token
-    @joinedMembers[client.id] = data
+    @user.findOne({id: user.id, socket_token: user.socket_token}, (err, doc) =>
+      throw err if err
+      throw new Error("Authentication failure.") unless doc
+      data =
+        id: user.id
+        name: user.name
+        socket_token: user.socket_token
+      @joinedMembers[client.id] = data
+      client.socket_token = user.socket_token
+    )
 
   leaveMember: (client) ->
     delete @joinedMembers[client.id]

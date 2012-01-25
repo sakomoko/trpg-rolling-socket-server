@@ -173,11 +173,6 @@ describe 'RoomModel', ->
       @client = new Client
       @client2 = new Client
       @room = new RoomModel(new ObjectId)
-      @data =
-        body: 'hogehoge'
-        dice: null
-        alias: 'AliasName'
-        supplement: null
       @room.user = User
 
     it 'ユーザー名とユーザーIDからなるオブジェクトが、@joinedMembersに格納されること', ->
@@ -211,6 +206,29 @@ describe 'RoomModel', ->
       expect(=> @room.joinMember @client, @user).toThrow()
     it 'ユーザーIDが含まれていなければ、例外が発生すること', ->
       delete @user.id
+      expect(=> @room.joinMember @client, @user).toThrow()
+
+    it 'ユーザーidとsocket_tokenで認証を行うこと', ->
+      spyOn(User, 'findOne').andCallFake(->
+        args = User.findOne.mostRecentCall.args
+        args[1](false, true)
+      )
+      @room.joinMember @client, @user
+      expect(User.findOne).toHaveBeenCalledWith({id: @user.id, socket_token: @user.socket_token}, jasmine.any(Function))
+
+    it '認証が成功したらclientにsocket_tokenの情報を追加すること', ->
+      spyOn(User, 'findOne').andCallFake(->
+        args = User.findOne.mostRecentCall.args
+        args[1](false, true)
+      )
+      @room.joinMember @client, @user
+      expect(@client.socket_token).toEqual(@user.socket_token)
+
+    it 'ユーザー名とsocket_tokenが一致しなければ、例外が発生すること', ->
+      spyOn(User, 'findOne').andCallFake(->
+        args = User.findOne.mostRecentCall.args
+        args[1](false, false)
+      )
       expect(=> @room.joinMember @client, @user).toThrow()
 
   it 'Connection closed.', ->
