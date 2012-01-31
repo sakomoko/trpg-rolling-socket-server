@@ -135,7 +135,7 @@ describe 'RoomModel', ->
       @data.body = null
       @room.message = Message
       callback = jasmine.createSpy()
-      expect(=> @room.addBuffer(@client, @data, callback)).toThrow(new Error("fail to save document."))
+      expect(=> @room.addBuffer(@client, @data, callback)).toThrow()
 
     it 'documentにリファレンスのキーが含まれていること', ->
       callback = (doc) =>
@@ -156,6 +156,14 @@ describe 'RoomModel', ->
       delete @data.alias
       callback = (doc) =>
         expect(doc.alias).toEqual('UserName')
+        jasmine.asyncSpecDone()
+      @room.addBuffer(@client, @data, callback)
+      jasmine.asyncSpecWait()
+
+    it '行末にdice文字列が含まれていれば、document.diceにダイスロールの結果が格納されること', ->
+      @data.body = 'hogehoge2d6'
+      callback = (doc) =>
+        expect(doc.dice).toEqual(jasmine.any(Array))
         jasmine.asyncSpecDone()
       @room.addBuffer(@client, @data, callback)
       jasmine.asyncSpecWait()

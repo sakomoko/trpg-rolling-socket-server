@@ -17,12 +17,7 @@ Message = new Schema
     type: String
     required: true
   dice:
-    roll:
-      type: Array
-    bonus:
-      type: Number
-    total:
-      type: Number
+    type: Array
   alias:
     type: String
     required: true

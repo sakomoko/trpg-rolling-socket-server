@@ -1,5 +1,6 @@
 Message = require('./schema/message-schema')
 User = require('./schema/user-schema')
+Dice = require './dice'
 class RoomModel
   constructor: (@id, @message = Message, @user = User, @bufferSize=50) ->
     @joinedMembers = {}
@@ -7,6 +8,10 @@ class RoomModel
   addBuffer: (client, data, callback) ->
     @user.findOne({socket_token: client.socket_token}, (err, doc) =>
       throw new Error("unmatched socket token.") unless doc
+      if dice_string = Dice.searchString data.body
+        rolled = new Dice dice_string
+        data.dice = rolled.rollResult
+        data.body = Dice.removeString data.body
       message = new @message(data)
       message.alias = doc.name unless data.alias
       message.user_id = doc.id
