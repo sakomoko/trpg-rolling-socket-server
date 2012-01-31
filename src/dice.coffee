@@ -1,6 +1,9 @@
 class Dice
+  @pattern:
+    /\d{1,3}d\d{1,3}((\+|\-)\d+)?(\*\d+)?$/im
+
   constructor: (@diceString) ->
-    result = @diceString.match /^(\d+)d(\d+)?((\+|\-)(\d)+)?(\*(\d))?/i
+    result = @diceString.match /^(\d+)d(\d+)?((\+|\-)(\d)+)?(\*(\d+))?/i
     @num = result[1] - 0
     @type = result[2] - 0
     @bonus = (result[3] ? 0) - 0
@@ -30,5 +33,10 @@ class Dice
       result
     type:
       @type
+
+  @searchString: (string) ->
+    result = string.match Dice.pattern
+    return false unless result
+    result[0]
 
 module.exports = Dice
