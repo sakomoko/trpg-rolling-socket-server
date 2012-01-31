@@ -28,5 +28,7 @@ class Dice
       @bonus
     result:
       result
+    type:
+      @type
 
 module.exports = Dice
