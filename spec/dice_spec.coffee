@@ -29,6 +29,8 @@ describe 'Dice', ->
               0
             result:
               6
+            type:
+              6
           }
         ])
       it 'resultが合計値の6を返すこと', ->
@@ -61,6 +63,8 @@ describe 'Dice', ->
               5
             result:
               11
+            type:
+              6
           }
         ])
       it 'resultが合計値の11を返すこと', ->
@@ -93,6 +97,8 @@ describe 'Dice', ->
               12
             result:
               21
+            type:
+              7
           }
         ])
       it 'resultが合計値の11を返すこと', ->
