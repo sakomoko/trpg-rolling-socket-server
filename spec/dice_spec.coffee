@@ -97,3 +97,20 @@ describe 'Dice', ->
         ])
       it 'resultが合計値の11を返すこと', ->
         expect(@dice.result).toEqual(21)
+
+    describe 'typeにdice文字列"2d6*2"を指定したとき', ->
+      beforeEach ->
+        spyOn(Math, 'random').andReturn(0.35)
+        @dice = new Dice("2d6*2")
+      it 'randメソッドが4度呼ばれること', ->
+        expect(Math.random.callCount).toEqual(4)
+      it 'numが2を返すこと', ->
+        expect(@dice.num).toEqual(2)
+      it 'typeが6を返すこと', ->
+        expect(@dice.type).toEqual(6)
+      it 'rollCountが2を返すこと', ->
+        expect(@dice.rollCount).toEqual(2)
+      it 'diceStringがダイス文字列を返すこと', ->
+        expect(@dice.diceString).toEqual("2d6*2")
+      it 'resultが配列を返すこと', ->
+        expect(@dice.result).toEqual([6,6])

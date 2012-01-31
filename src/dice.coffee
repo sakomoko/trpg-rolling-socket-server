@@ -5,21 +5,28 @@ class Dice
     @type = result[2] - 0
     @bonus = (result[3] ? 0) - 0
     @rollCount = (result[7] ? 1) - 0
+    @result = if @rollCount > 1 then new Array else 0
     @rollResult = []
-    @rollResult.push @roll()
+    @rollResult.push @roll() for i in [1..@rollCount]
+
 
   roll: () ->
-    result = (Math.floor(Math.random() * @type) + 1 for i in [1..@num])
-    total = 0
-    total+= value for value in result
-    @result = total + @bonus
+    dice_result = (Math.floor(Math.random() * @type) + 1 for i in [1..@num])
+    dice_total = 0
+    dice_total+= value for value in dice_result
+    result = dice_total + @bonus
+    if @result instanceof Array
+      @result.push result
+    else
+      @result = result
+
     dice_result:
-      result
+      dice_result
     dice_total:
-      total
+      dice_total
     bonus:
       @bonus
     result:
-      @result
+      result
 
 module.exports = Dice
