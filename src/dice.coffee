@@ -39,4 +39,9 @@ class Dice
     return false unless result
     result[0]
 
+  @removeString: (string) ->
+    result = string.replace Dice.pattern, ''
+    return string unless result
+    result
+
 module.exports = Dice

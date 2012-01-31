@@ -169,3 +169,27 @@ describe 'Dice', ->
     it 'ダイス文字列がなければ、falseを返すこと', ->
       @string = '2hdog6e7'
       expect(Dice.searchString @string).toBeFalsy()
+
+  describe '::removeString', ->
+    it '文末のダイス文字列を削除する', ->
+      @string = """
+        2d6を振って下さい
+        2d6
+
+        """
+      expected = """
+        2d6を振って下さい
+
+
+        """
+      expect(Dice.removeString @string).toEqual expected
+    it 'ダイス文字列だけの場合は削除しない', ->
+      @string = '2d6'
+      expect(Dice.removeString @string).toEqual '2d6'
+    it '文中のダイス文字列は削除しない', ->
+      @string = """
+        そうですねえ、2d6にしましょうかねえ。
+        どうだろう。2d6でいいなぁ。
+
+        """
+      expect(Dice.removeString @string).toEqual @string
