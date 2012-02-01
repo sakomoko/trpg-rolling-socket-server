@@ -1,9 +1,21 @@
+Backbone = require 'backbone'
 Message = require('./schema/message-schema')
 User = require('./schema/user-schema')
 Dice = require './dice'
-class RoomModel
-  constructor: (@id, @message = Message, @user = User, @bufferSize=50) ->
+
+class RoomModel extends Backbone.Model
+
+  defaults:
+    is_static: false
+    is_closed: false
+
+  message: Message
+
+  user: User
+
+  initialize: () ->
     @joinedMembers = {}
+    @bufferSize = 50
 
   addBuffer: (client, data, callback) ->
     @user.findOne({socket_token: client.socket_token}, (err, doc) =>
@@ -57,4 +69,4 @@ class RoomModel
   dateFormat: (date) ->
     date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).substr(-2) + "-" + ("0" + date.getDate()).substr(-2) + " " + ("0" + date.getHours()).substr(-2) + ":" + ("0" + date.getMinutes()).substr(-2) + ":" + ("0" + date.getSeconds()).substr(-2)
 
-exports.RoomModel = RoomModel
+module.exports = RoomModel

@@ -19,4 +19,4 @@ Room = new mongoose.Schema
     default: Date.now
 
 mongoose.model "Room", Room
-exports ?= mongoose.model "Room"
+module.exports = mongoose.model "Room"

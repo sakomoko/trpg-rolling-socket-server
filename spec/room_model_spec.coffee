@@ -29,77 +29,73 @@ class Client
   to: () ->
     @
 
-RoomModel = require('../lib/room-model').RoomModel
+RoomModel = require('../lib/room-model')
 mongoose = require "mongoose"
 mongoose.connect('mongodb://localhost/test')
 
 describe 'RoomModel', ->
 
-  it 'インスタンスを作成したとき、@id, @messageがセットされていること', ->
-    room = new RoomModel 'id', 'message'
-    expect(room.id).toEqual('id')
-    expect(room.message).toEqual('message')
+  it 'インスタンスを作成したとき、@idがセットされていること', ->
+    room_id = new ObjectId
+    room = new RoomModel id: room_id
+    expect(room.id).toEqual(room_id)
 
   describe '#getBuffer', ->
-    room = {}
     beforeEach ->
-      room = new RoomModel 'id', Message, User
+      @id = new ObjectId
+      @room = new RoomModel id: @id
+      @room.message = Message
     it '渡したcallbackが実行されること', ->
       callback = jasmine.createSpy()
-      room.getBuffer {}, callback
+      @room.getBuffer {}, callback
       expect(callback).toHaveBeenCalledWith({}, jasmine.any(Array))
     it 'Message#findが実行されること', ->
       spyOn Message, 'find'
-      room.getBuffer()
-      expect(Message.find).toHaveBeenCalledWith({room_id: 'id'}, {}, {sort:{_id:-1}, limit:50}, jasmine.any Function)
-    it 'messageが得られなければfalseを返すこと', ->
-      spyOn(Message, 'find').andReturn(null)
-      room.getBuffer()
-      expect(room.getBuffer()).toBeFalsy()
+      @room.getBuffer()
+      expect(Message.find).toHaveBeenCalledWith({room_id: @id}, {}, {sort:{_id:-1}, limit:50}, jasmine.any Function)
 
   describe "#dateFormat", ->
     it 'Dateクラスを与えるとフォーマット文字列に変換されること', ->
-      room = new RoomModel 'id'
-      expect(room.dateFormat(new Date "17 Jan 2012 14:52:15")).toEqual '2012-01-17 14:52:15'
+      @room = new RoomModel id: new ObjectId
+      expect(@room.dateFormat(new Date "17 Jan 2012 14:52:15")).toEqual '2012-01-17 14:52:15'
 
   describe "#getJoinedMember", ->
     it 'clientからjoinしているmemberのデータを得られること', ->
-      room = new RoomModel 'id'
+      @room = new RoomModel id: new ObjectId
       joined_member = {id: 'user_id', name: 'user_name', color: 'red'}
       client = new Client
-      room.joinedMembers["#{client.id}"] = joined_member
-      expect(room.getJoinedMember(client)).toEqual(joined_member)
+      @room.joinedMembers["#{client.id}"] = joined_member
+      expect(@room.getJoinedMember(client)).toEqual(joined_member)
 
   describe "#leaveMember", ->
-    room = client = {}
     beforeEach ->
-      room = new RoomModel 'id'
-      client = new Client
+      @room = new RoomModel id: new ObjectId
+      @client = new Client
       joined_member = {id: 'user_id', name: 'user_name', color: 'red'}
-      room.joinedMembers["#{client.id}"] = joined_member
+      @room.joinedMembers["#{@client.id}"] = joined_member
 
     it "clientを渡すと、clientがjoinedMembersから削除されること", ->
-      room.leaveMember(client)
-      expect(room.joinedMembers).toEqual({})
+      @room.leaveMember(@client)
+      expect(@room.joinedMembers).toEqual({})
 
     it "client#leaveが実行されること", ->
-      spyOn client, 'leave'
-      room.leaveMember client
-      expect(client.leave).toHaveBeenCalledWith(room.id)
+      spyOn @client, 'leave'
+      @room.leaveMember @client
+      expect(@client.leave).toHaveBeenCalledWith(@room.id)
 
     it "他の参加者に参加者一覧情報を配信すること", ->
-      spyOn client, 'emit'
-      spyOn(client, 'to').andCallThrough()
-      spyOn(client, 'broadcast').andCallThrough()
-      room.leaveMember client
-      expect(client.emit).toHaveBeenCalledWith('updateJoinedMembers', room.id, {})
-      expect(client.to).toHaveBeenCalledWith(room.id)
-      expect(client.broadcast).toHaveBeenCalled()
+      spyOn @client, 'emit'
+      spyOn(@client, 'to').andCallThrough()
+      spyOn(@client, 'broadcast').andCallThrough()
+      @room.leaveMember @client
+      expect(@client.emit).toHaveBeenCalledWith('updateJoinedMembers', @room.id, {})
+      expect(@client.to).toHaveBeenCalledWith(@room.id)
+      expect(@client.broadcast).toHaveBeenCalled()
 
   describe '#addBuffer', ->
     beforeEach ->
       @user_id = new ObjectId()
-      @room = new RoomModel(new ObjectId)
+      @room = new RoomModel(id: new ObjectId)
       @client = new Client
       @data =
         body: 'hogehoge'
