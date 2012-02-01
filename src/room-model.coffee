@@ -48,7 +48,7 @@ class RoomModel extends Backbone.Model
   getJoinedMember: (client) ->
     @joinedMembers[client.id]
 
-  joinMember: (client, user) ->
+  joinMember: (client, user, callback) ->
     throw new Error("user id or name undefined.") unless user.id and user.name
     @user.findOne({id: user.id, socket_token: user.socket_token}, (err, doc) =>
       throw err if err
@@ -59,6 +59,7 @@ class RoomModel extends Backbone.Model
         socket_token: user.socket_token
       @joinedMembers[client.id] = data
       client.socket_token = user.socket_token
+      callback(client) if callback
     )
 
   leaveMember: (client) ->

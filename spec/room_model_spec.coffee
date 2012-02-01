@@ -235,5 +235,10 @@ describe 'RoomModel', ->
       )
       expect(=> @room.joinMember @client, @user).toThrow()
 
+    it '渡したコールバックが実行されること', ->
+      callback = jasmine.createSpy()
+      @room.joinMember @client, @user, callback
+      expect(callback).toHaveBeenCalledWith(@client)
+
   it 'Connection closed.', ->
     mongoose.disconnect()
