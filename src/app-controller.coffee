@@ -1,12 +1,14 @@
 RoomCollection = require './room-collection'
 class AppController
-  rooms: new RoomCollection()
+
+  constructor: () ->
+    @rooms = new RoomCollection()
 
   bindAllEvents: (client) ->
-    fn client for key, fn of @events
+    fn.apply @, [client] for key, fn of @events
 
   events:
-    getRoomLog: (client) =>
+    getRoomLog: (client) ->
       client.on 'getRoomLog', (roomId) =>
         @rooms.get(roomId).getBuffer client, (client, docs)->
           client.emit 'pushMessage', roomId, docs

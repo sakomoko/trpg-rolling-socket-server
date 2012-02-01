@@ -2,6 +2,7 @@ App = require '../lib/app-controller'
 
 class Client
   on: () ->
+
 describe 'AppController', ->
 
   describe '#bindAllEvents', ->
@@ -11,3 +12,4 @@ describe 'AppController', ->
       spyOn(@client, 'on')
       @app.bindAllEvents @client
       expect(@client.on).toHaveBeenCalledWith('getRoomLog', jasmine.any(Function))
+
