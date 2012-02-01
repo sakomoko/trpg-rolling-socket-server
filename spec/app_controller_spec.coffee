@@ -12,4 +12,5 @@ describe 'AppController', ->
       spyOn(@client, 'on')
       @app.bindAllEvents @client
       expect(@client.on).toHaveBeenCalledWith('getRoomLog', jasmine.any(Function))
+      expect(@client.on).toHaveBeenCalledWith('joinMember', jasmine.any(Function))
 

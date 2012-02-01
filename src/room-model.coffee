@@ -59,6 +59,7 @@ class RoomModel extends Backbone.Model
         socket_token: user.socket_token
       @joinedMembers[client.id] = data
       client.socket_token = user.socket_token
+      client.join @id
       callback(client) if callback
     )
 
