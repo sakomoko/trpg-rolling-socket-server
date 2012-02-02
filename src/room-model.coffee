@@ -1,6 +1,7 @@
 Backbone = require 'backbone'
 Message = require('./schema/message-schema')
 User = require('./schema/user-schema')
+RoomSchema = require './schema/room-schema'
 Dice = require './dice'
 
 class RoomModel extends Backbone.Model
@@ -12,6 +13,8 @@ class RoomModel extends Backbone.Model
   message: Message
 
   user: User
+
+  schema: RoomSchema
 
   initialize: () ->
     @joinedMembers = {}
@@ -48,6 +51,10 @@ class RoomModel extends Backbone.Model
   getJoinedMember: (client) ->
     @joinedMembers[client.id]
 
+  getJoinedMembers: ->
+    for key, member of @joinedMembers
+      member
+
   joinMember: (client, user, callback) ->
     throw new Error("user id or name undefined.") unless user.id and user.name
     @user.findOne({id: user.id, socket_token: user.socket_token}, (err, doc) =>
@@ -56,7 +63,6 @@ class RoomModel extends Backbone.Model
       data =
         id: user.id
         name: user.name
-        socket_token: user.socket_token
       @joinedMembers[client.id] = data
       client.socket_token = user.socket_token
       client.join @id
@@ -70,5 +76,15 @@ class RoomModel extends Backbone.Model
 
   dateFormat: (date) ->
     date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).substr(-2) + "-" + ("0" + date.getDate()).substr(-2) + " " + ("0" + date.getHours()).substr(-2) + ":" + ("0" + date.getMinutes()).substr(-2) + ":" + ("0" + date.getSeconds()).substr(-2)
+
+  sync: (method, model, options) ->
+    switch method
+      when "create"
+        doc = new @schema(model.attributes)
+        doc.save (err) ->
+          throw err if err
+          json = doc.toJSON()
+          json.id = json._id.toString()
+          options.success(json)
 
 module.exports = RoomModel

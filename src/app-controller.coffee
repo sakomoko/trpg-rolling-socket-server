@@ -4,22 +4,26 @@ class AppController
   constructor: () ->
     @rooms = new RoomCollection()
 
-  bindAllEvents: (client) ->
-    fn.apply @, [client] for key, fn of @events
+  bindAllEvents: (socket) ->
+    fn.apply @, [socket] for key, fn of @events
 
   events:
-    getRoomLog: (client) ->
-      client.on 'getRoomLog', (roomId) =>
-        @rooms.get(roomId).getBuffer client, (client, docs)->
-          client.emit 'pushMessage', roomId, docs
+    getRoomLog: (socket) ->
+      socket.on 'getRoomLog', (roomId) =>
+        @rooms.get(roomId).getBuffer socket, (socket, docs)->
+          socket.emit 'pushMessage', roomId, docs
 
-    joinMember: (client) ->
-      client.on 'joinMember', (roomId, user, fn) =>
-        @rooms.get(roomId).joinMember(client, user, ->
-          client.emit('successJoined', roomId, user)
+    joinMember: (socket) ->
+      socket.on 'joinMember', (roomId, user, fn) =>
+        @rooms.get(roomId).joinMember socket, user, ->
+          socket.emit('successJoined', roomId, user)
           members = @rooms.get(roomId).getJoinedMembers()
-          client.to(roomId).emit('updateJoinedMembers', roomId, members)
+          socket.to(roomId).emit('updateJoinedMembers', roomId, members)
           fn() if fn
-        )
+
+    getJoinedMembers: (socket) ->
+      socket.on 'getJoinedMembers', (roomId) =>
+        socket.emit 'updateJoinedMembers', roomId, @rooms.get(roomId).getJoinedMembers()
+
 
 module.exports = AppController

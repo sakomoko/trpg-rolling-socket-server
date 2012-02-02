@@ -24,6 +24,7 @@ class Client
   constructor: (@id = new ObjectId) ->
   leave: () ->
   emit: () ->
+  join: () ->
   broadcast: () ->
     @
   to: () ->
@@ -181,7 +182,7 @@ describe 'RoomModel', ->
 
     it 'ユーザー名とユーザーIDからなるオブジェクトが、@joinedMembersに格納されること', ->
       @room.joinMember @client, @user
-      expect(@room.joinedMembers[@client.id]).toEqual(@user)
+      expect(@room.joinedMembers[@client.id]).toEqual({id:@user.id,name:@user.name})
 
     it '同じクライアントからの入室は無視すること', ->
       @room.joinMember @client, @user
@@ -193,8 +194,8 @@ describe 'RoomModel', ->
     it '複数のクライアントが格納できること', ->
       @room.joinMember @client, @user
       @room.joinMember @client2, @user2
-      expect(@room.joinedMembers[@client.id]).toEqual(@user)
-      expect(@room.joinedMembers[@client2.id]).toEqual(@user2)
+      expect(@room.joinedMembers[@client.id]).toEqual({id:@user.id, name: @user.name})
+      expect(@room.joinedMembers[@client2.id]).toEqual({id:@user2.id, name: @user2.name})
       num = 0
       num++ for user of @room.joinedMembers
       expect(num).toEqual(2)
@@ -239,6 +240,17 @@ describe 'RoomModel', ->
       callback = jasmine.createSpy()
       @room.joinMember @client, @user, callback
       expect(callback).toHaveBeenCalledWith(@client)
+
+  describe '#getJoinedMembers', ->
+    beforeEach ->
+      @room = new RoomModel id: new ObjectId
+      @client = new Client
+      joined_member = {id: 'user_id', name: 'user_name', color: 'red'}
+      @room.joinedMembers["#{@client.id}"] = joined_member
+    it '配列が返ること', ->
+      expect(@room.getJoinedMembers()).toEqual(jasmine.any(Array))
+    it '配列の値は、ログインしたユーザーのオブジェクトであること', ->
+      expect(@room.getJoinedMembers()).toEqual([{id:'user_id',name:'user_name',color:'red'}])
 
   it 'Connection closed.', ->
     mongoose.disconnect()
