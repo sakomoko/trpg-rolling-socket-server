@@ -25,5 +25,13 @@ class AppController
       socket.on 'getJoinedMembers', (roomId) =>
         socket.emit 'updateJoinedMembers', roomId, @rooms.get(roomId).getJoinedMembers()
 
+    sendMessage: (socket) ->
+      socket.on 'sendMessage', (roomId, data) =>
+        try
+          @rooms.get(roomId).addBuffer socket, data, (msg) ->
+            socket.to(roomId).emit('pushMessage', roomId, msg)
+        catch e
+          socket.emit('socketFaild', e.message)
+
 
 module.exports = AppController
