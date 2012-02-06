@@ -37,15 +37,16 @@ class RoomModel extends Backbone.Model
       )
     )
 
-  getBuffer: (client, callback) ->
+  getBuffer: (callback) ->
     @message.find({room_id: @id}, {}, {sort:{_id: -1}, limit: @bufferSize}, (err, docs) =>
-      return false unless docs
+      throw err if err
       result = docs.map((doc) =>
         message = doc.toObject()
+        message.id = message._id.toString()
         message.created = @dateFormat message.created_at
         message
       )
-      callback client, result
+      callback result
     )
 
   getJoinedMember: (client) ->
