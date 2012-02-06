@@ -1,6 +1,7 @@
 require('should')
 async = require('async')
 sinon = require('sinon')
+uuid = require('node-uuid')
 mongoose = require('mongoose')
 RoomModel = require('../lib/room-model')
 Factory = require('factory-lady')
@@ -12,8 +13,8 @@ databaseCleaner = new DatabaseCleaner('mongodb')
 ObjectId = mongoose.Types.ObjectId;
 
 class Socket
-  id: ->
-
+  constructor: (@id = new ObjectId) ->
+  join: ->
 describe 'RoomModel', ->
   before (done) =>
     mongoose.connect('mongodb://localhost/trpg_rolling_test', -> done())
@@ -110,3 +111,90 @@ describe 'RoomModel', ->
     it 'データがなければfalseを返すこと', ->
       @socket.id = new ObjectId
       @room.getJoinedMember(@socket).should.be.false
+
+  describe '#joinMember', ->
+    beforeEach (done) ->
+      @room = new RoomModel id: new ObjectId
+      @socket = new Socket
+      @socket2 = new Socket
+      @socketId = @socket.id = new ObjectId.toString()
+
+      Factory.create 'user', (user) =>
+        @userId = user.id
+        @userRequest =
+          id: user.id
+          name: user.name
+          alias: 'AliasName'
+          socket_token: user.socket_token
+        @spy = sinon.stub(@room.user, 'findOne').callsArgWith(1, false, user)
+        done()
+
+      @userRequest2 =
+        id: new ObjectId
+        name: 'UserName2'
+        socket_token: uuid.v4()
+
+    afterEach ->
+      @room.user.findOne.restore()
+
+    it 'ユーザー名とユーザーIDからなるオブジェクトが、@joinedMembersに格納されること',  ->
+      @room.joinMember @socket, @userRequest
+      delete @userRequest.socket_token
+      @room.joinedMembers[@socket.id].should.eql @userRequest
+
+    it '同じクライアントからの入室は無視すること', ->
+      @room.joinMember @socket, @userRequest
+      @room.joinMember @socket, @userRequest
+      num = 0
+      num++ for user of @room.joinedMembers
+      Object.keys(@room.joinedMembers).should.have.length 1
+
+    it '複数のクライアントが格納できること', ->
+      @room.joinMember @socket, @userRequest
+      @room.user.findOne.callsArgWith(1, false, @userRequest2)
+      @room.joinMember @socket2, @userRequest2
+      delete @userRequest.socket_token
+      delete @userRequest2.socket_token
+      @room.joinedMembers[@socket.id].should.eql @userRequest
+      @room.joinedMembers[@socket2.id].should.eql @userRequest2
+      Object.keys(@room.joinedMembers).should.have.length 2
+
+
+    it '必要な情報以外は格納しないこと', ->
+      @userRequest.hoge = 'huga'
+      @userRequest.fuga = 'hoge'
+      @room.joinMember @socket, @userRequest
+      @room.joinedMembers[@socket.id].should.not.eql @userRequest
+
+    it 'ユーザー名が含まれていなければ、例外が発生すること', ->
+      delete @userRequest.name
+      (=> @room.joinMember @socket, @user).should.throw()
+    it 'ユーザーIDが含まれていなければ、例外が発生すること', ->
+      delete @userRequest.id
+      (=> @room.joinMember @socket, @userRequest).should.throw()
+
+    it 'socket_tokenが含まれていなければ、例外が発生すること', ->
+      delete @userRequest.socket_token
+      (=> @room.joinMember @socket, @userRequest).should.throw()
+
+    it 'ユーザーidとsocket_tokenで認証を行うこと', ->
+      @room.joinMember @socket, @userRequest
+      @spy.calledWith({id: @userRequest.id, socket_token: @userRequest.socket_token}).should.be.true
+
+    it 'ユーザー名とsocket_tokenが一致しなければ、例外が発生すること', ->
+      @room.user.findOne.callsArgWith(1, false, null)
+      (=> @room.joinMember @socket, @userRequest).should.throw()
+
+    it '渡したコールバックが実行されること', (done) ->
+      @room.joinMember @socket, @userRequest, =>
+        done()
+
+###
+    it '認証が成功したらsocketにsocket_tokenの情報を追加すること', ->
+      spyOn(User, 'findOne').andCallFake(->
+        args = User.findOne.mostRecentCall.args
+        args[1](false, true)
+      )
+      @room.joinMember @socket, @userRequest
+      expect(@socket.socket_token).toEqual(@userRequest.socket_token)
+

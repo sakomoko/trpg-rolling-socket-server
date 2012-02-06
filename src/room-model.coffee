@@ -57,13 +57,14 @@ class RoomModel extends Backbone.Model
       member
 
   joinMember: (client, user, callback) ->
-    throw new Error("user id or name undefined.") unless user.id and user.name
+    throw new Error("user id or name undefined.") unless user.id and user.name and user.socket_token
     @user.findOne({id: user.id, socket_token: user.socket_token}, (err, doc) =>
       throw err if err
       throw new Error("Authentication failure.") unless doc
       data =
-        id: user.id
-        name: user.name
+        id: doc.id
+        name: doc.name
+      data.alias = user.alias if user.alias
       @joinedMembers[client.id] = data
       client.socket_token = user.socket_token
       client.join @id
