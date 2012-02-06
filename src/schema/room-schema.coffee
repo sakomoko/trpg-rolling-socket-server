@@ -4,19 +4,17 @@ Room = new mongoose.Schema
     type: String
     required: true
 
-  is_static:
+  static:
     type: Boolean
     required: true
     default: false
 
-  is_closed:
-    type: Boolean
-    required: true
-    default: false
-
-  created:
+  created_at:
     type: Date
     default: Date.now
+
+  closed_at:
+    type: Date
 
 mongoose.model "Room", Room
 module.exports = mongoose.model "Room"
