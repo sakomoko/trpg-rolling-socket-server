@@ -50,7 +50,7 @@ class RoomModel extends Backbone.Model
     )
 
   getJoinedMember: (client) ->
-    @joinedMembers[client.id]
+    @joinedMembers[client.id] or false
 
   getJoinedMembers: ->
     for key, member of @joinedMembers

@@ -11,7 +11,8 @@ databaseCleaner = new DatabaseCleaner('mongodb')
 
 ObjectId = mongoose.Types.ObjectId;
 
-createMessage = (roomId, callback) ->
+class Socket
+  id: ->
 
 describe 'RoomModel', ->
   before (done) =>
@@ -94,3 +95,18 @@ describe 'RoomModel', ->
     it 'エラーがあった場合は例外が発生すること', ->
       sinon.stub(@room.message, 'find').callsArgWith(3, true, null)
       (=> @room.getBuffer()).should.throw()
+
+  describe '#getJoinedMember', ->
+    beforeEach () ->
+      @room = new RoomModel id: new ObjectId
+      @socket = new Socket
+      @socketId = @socket.id = new ObjectId.toString()
+      @userId = new ObjectId
+      @data = @room.joinedMembers[@socketId] =
+        id: @userId
+        name: 'joinedName'
+    it 'socketを渡すと、joinした際のデータを得られること', ->
+      @room.getJoinedMember(@socket).should.eql @data
+    it 'データがなければfalseを返すこと', ->
+      @socket.id = new ObjectId
+      @room.getJoinedMember(@socket).should.be.false
