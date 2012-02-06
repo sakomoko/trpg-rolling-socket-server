@@ -1,0 +1,23 @@
+{
+	"name": "trpg-rolling-socket-server",
+	"version": "0.0.1",
+	"author": "sakomoko <sakomoko@gmail.com>",
+	"repository": {
+		"type": "git",
+		"url": "https://sakomoko@github.com/sakomoko/trpg-rolling-socket-server.git"
+	},
+	"dependencies": {
+		"socket.io": ">= 0.8.7",
+		"mongoose": ">= 2.4.10",
+		"backbone": ">= 0.9.0"
+	},
+	"devDependencies": {
+		"should": "0.5.1",
+		"sinon": "1.3.1",
+		"mocha": ">= 0.11.0",
+		"mongodb": ">= 0.9.8-1",
+		"database-cleaner": ">= 0.6.0"
+	},
+	"main": "app",
+	"engines": {"node": ">= 0.4.0"}
+}
