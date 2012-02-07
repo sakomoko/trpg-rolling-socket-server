@@ -112,6 +112,20 @@ describe 'RoomModel', ->
       @socket.id = new ObjectId
       @room.getJoinedMember(@socket).should.be.false
 
+  describe '#getJoinedMembers', ->
+    beforeEach ->
+      @room = new RoomModel id: new ObjectId
+
+    it '入室者のデータを配列で得られること', ->
+      @room.getJoinedMembers().should.be.an.instanceof Array
+
+    it '三人が入室していれば、三人のデータが得られること', ->
+      for i in [1..3]
+        @room.joinedMembers[i] =
+          name: "User#{i}"
+          color: "UserColor#{i}"
+      @room.getJoinedMembers().should.have.length 3
+
   describe '#joinMember', ->
     beforeEach (done) ->
       @room = new RoomModel id: new ObjectId
@@ -189,12 +203,4 @@ describe 'RoomModel', ->
       @room.joinMember @socket, @userRequest, =>
         done()
 
-###
-    it '認証が成功したらsocketにsocket_tokenの情報を追加すること', ->
-      spyOn(User, 'findOne').andCallFake(->
-        args = User.findOne.mostRecentCall.args
-        args[1](false, true)
-      )
-      @room.joinMember @socket, @userRequest
-      expect(@socket.socket_token).toEqual(@userRequest.socket_token)
 
