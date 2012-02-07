@@ -21,11 +21,19 @@ class Socket
 
 Socket::__defineGetter__ 'broadcast', -> @
 
+class MessageStub
+  save: (doc) ->
+    console.log doc
+
 describe 'RoomModel', ->
   before (done) =>
     mongoose.connect('mongodb://localhost/trpg_rolling_test', -> done())
   after (done) =>
     databaseCleaner.clean mongoose.connection.db, -> done()
+
+  beforeEach ->
+    @room = new RoomModel id: new ObjectId
+    @socket = new Socket
 
   describe 'インスタンスを作成したとき', ->
     beforeEach ->
@@ -35,6 +43,67 @@ describe 'RoomModel', ->
       @room.should.have.property('id', @roomId)
     it 'should have title equal Room1', ->
       @room.get('title').should.equal('Room1')
+
+  describe '#addBuffer', ->
+    beforeEach ->
+      @doc =
+        id: new ObjectId
+        name: 'UserName'
+      @userStub = sinon.stub(@room.user, 'findOne').callsArgWith 1, false, @doc
+      @request =
+        alias: 'AliasName'
+        socket_token: 'uuid_token'
+        body: 'text'
+    afterEach ->
+      @userStub.restore()
+      @messageStub?.restore()
+
+    it 'User#findOneが呼ばれること', (done) ->
+      @room.addBuffer @socket, @request, =>
+        @userStub.called.should.be.true
+        done()
+
+    it 'callbackが呼ばれること', (done) ->
+      @room.addBuffer @socket, @request, =>
+        done()
+
+    it 'documentが正常に保存されて、callbackに渡されること', (done) ->
+      @room.addBuffer @socket, @request, (doc) =>
+        doc.should.exist
+        done()
+
+    it 'socket_tokenの照合に失敗したら例外がなげられること', ->
+      @userStub.callsArgWith 1, false, null
+      (=> @room.addBuffer @socket, @request).should.throw()
+
+    it 'documentの保存に失敗したら例外が投げられること', ->
+      @messageStub = sinon.stub(MessageStub::, 'save').callsArgWith 0, true
+      @room.message = MessageStub
+      (=> @room.addBuffer @socket, @request).should.throw()
+
+    it 'documentにリファレンスのキーが含まれていること', (done) ->
+      @room.addBuffer @socket, @request, (doc) =>
+        doc.should.have.property('user_id').with.eql @doc.id
+        doc.should.have.property('room_id').with.eql @room.id
+        done()
+
+    it 'documentを保存したときに、リクエストにあるaliasが正しく設定されていること', (done) ->
+      @room.addBuffer @socket, @request, (doc) =>
+        doc.should.have.property('alias').with.equal @request.alias
+        done()
+
+    it 'aliasが指定されていなければ、aliasにユーザー名がセットされていること', (done) ->
+      delete @request.alias
+      @room.addBuffer @socket, @request, (doc) =>
+        doc.should.have.property('alias').with.equal @doc.name
+        done()
+
+    it '行末にdice文字列が含まれていれば、document.diceにダイスロールの結果が格納されること', (done) ->
+      @request.body = 'hogehoge2d6'
+      @room.addBuffer @socket, @request, (doc) =>
+        doc.should.have.property('dice').with.length 1
+        done()
+
 
   describe '#getBuffer', ->
     beforeEach (done) ->
@@ -105,8 +174,6 @@ describe 'RoomModel', ->
 
   describe '#getJoinedMember', ->
     beforeEach () ->
-      @room = new RoomModel id: new ObjectId
-      @socket = new Socket
       @socketId = @socket.id = new ObjectId.toString()
       @userId = new ObjectId
       @data = @room.joinedMembers[@socketId] =
@@ -119,8 +186,6 @@ describe 'RoomModel', ->
       @room.getJoinedMember(@socket).should.be.false
 
   describe '#getJoinedMembers', ->
-    beforeEach ->
-      @room = new RoomModel id: new ObjectId
 
     it '入室者のデータを配列で得られること', ->
       @room.getJoinedMembers().should.be.an.instanceof Array
@@ -134,7 +199,6 @@ describe 'RoomModel', ->
 
   describe '#joinMember', ->
     beforeEach (done) ->
-      @room = new RoomModel id: new ObjectId
       @socket = new Socket
       @socket2 = new Socket
       @socketId = @socket.id = new ObjectId.toString()
@@ -211,8 +275,6 @@ describe 'RoomModel', ->
 
   describe '#leaveMember', ->
     beforeEach ->
-      @room = new RoomModel id: new ObjectId
-      @socket = new Socket
       @room.joinedMembers[@socket.id] = @socket
 
     it "socketを渡すと、socketがjoinedMembersから削除されること", ->
