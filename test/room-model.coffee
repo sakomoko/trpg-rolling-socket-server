@@ -15,6 +15,12 @@ ObjectId = mongoose.Types.ObjectId;
 class Socket
   constructor: (@id = new ObjectId) ->
   join: ->
+  to: -> @
+  emit: ->
+  leave: ->
+
+Socket::__defineGetter__ 'broadcast', -> @
+
 describe 'RoomModel', ->
   before (done) =>
     mongoose.connect('mongodb://localhost/trpg_rolling_test', -> done())
@@ -203,4 +209,12 @@ describe 'RoomModel', ->
       @room.joinMember @socket, @userRequest, =>
         done()
 
+  describe '#leaveMember', ->
+    beforeEach ->
+      @room = new RoomModel id: new ObjectId
+      @socket = new Socket
+      @room.joinedMembers[@socket.id] = @socket
 
+    it "socketを渡すと、socketがjoinedMembersから削除されること", ->
+      @room.leaveMember(@socket)
+      @room.joinedMembers.should.eql {}
