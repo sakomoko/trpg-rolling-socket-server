@@ -22,8 +22,10 @@ class Socket
 Socket::__defineGetter__ 'broadcast', -> @
 
 class MessageStub
-  save: (doc) ->
-    console.log doc
+  save: ->
+
+class SchemaStub
+  save: ->
 
 describe 'RoomModel', ->
   before (done) =>
@@ -280,3 +282,33 @@ describe 'RoomModel', ->
     it "socketを渡すと、socketがjoinedMembersから削除されること", ->
       @room.leaveMember(@socket)
       @room.joinedMembers.should.eql {}
+
+
+  describe 'Roomを新規作成して保存したとき', ->
+    beforeEach ->
+      @room = new RoomModel title: 'Room1'
+
+    it '#schema.saveが呼ばれること', ->
+      @room.schema = SchemaStub
+      spy = sinon.spy(SchemaStub::, 'save')
+      @room.save(title: 'Room1')
+      spy.called.should.be.true
+
+    it 'モデルを渡したcallbackが呼ばれること', (done) ->
+      @room.save(null, success: (doc) ->
+        doc.should.be.an.instanceof RoomModel
+        done()
+      )
+
+    it 'idが文字列でセットされていること', (done) ->
+      @room.save(null, success: (doc) ->
+        doc.should.have.property('id').with.be.not.empty
+        done()
+      )
+
+    it 'attributes._idにObjectIdがセットされていること', (done) ->
+      @room.save(null, success: (doc) ->
+        doc.attributes.should.have.property('_id')
+        doc.get("_id").should.be.an.instanceof ObjectId
+        done()
+      )
