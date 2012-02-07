@@ -6,7 +6,6 @@ mongoose = require('mongoose')
 RoomModel = require('../lib/room-model')
 Factory = require('factory-lady')
 require('../support/factories')
-ObjectId = require('mongodb').BSONPure.ObjectID
 DatabaseCleaner = require('database-cleaner')
 databaseCleaner = new DatabaseCleaner('mongodb')
 
@@ -37,14 +36,31 @@ describe 'RoomModel', ->
     @room = new RoomModel id: new ObjectId
     @socket = new Socket
 
-  describe 'インスタンスを作成したとき', ->
+  describe 'ObjectIdからインスタンスを作成したとき', ->
     beforeEach ->
-      @roomId = new ObjectId().toString()
+      @roomId = new ObjectId
       @room = new RoomModel id: @roomId, title: 'Room1'
-    it 'should have propety id', ->
-      @room.should.have.property('id', @roomId)
+
+    it 'ObjectIdを文字列としたものをidとして持っていること', ->
+      @room.should.have.property('id', @roomId.toString())
+
+    it 'ObjectIdオブジェクトを_idプロパティに持っていること', ->
+      @room.get('_id').should.equal @roomId
+
     it 'should have title equal Room1', ->
       @room.get('title').should.equal('Room1')
+
+  describe 'ObjectIdの文字列からインスタンスを作成したとき', ->
+    beforeEach ->
+      @roomId = new ObjectId
+      @room = new RoomModel id: @roomId.toString(), title: 'Room1'
+
+    it 'ObjectIdを文字列としたものをidとして持っていること', ->
+      @room.should.have.property('id', @roomId.toString())
+
+    it 'ObjectIdオブジェクトを_idプロパティに持っていること', ->
+      @room.get('_id').should.eql @roomId
+      @room.get('_id').should.be.an.instanceof ObjectId
 
   describe '#addBuffer', ->
     beforeEach ->
@@ -86,7 +102,7 @@ describe 'RoomModel', ->
     it 'documentにリファレンスのキーが含まれていること', (done) ->
       @room.addBuffer @socket, @request, (doc) =>
         doc.should.have.property('user_id').with.eql @doc.id
-        doc.should.have.property('room_id').with.eql @room.id
+        doc.should.have.property('room_id').with.eql @room.get('_id')
         done()
 
     it 'documentを保存したときに、リクエストにあるaliasが正しく設定されていること', (done) ->
@@ -293,6 +309,7 @@ describe 'RoomModel', ->
       spy = sinon.spy(SchemaStub::, 'save')
       @room.save(title: 'Room1')
       spy.called.should.be.true
+      spy.restore()
 
     it 'モデルを渡したcallbackが呼ばれること', (done) ->
       @room.save(null, success: (doc) ->
@@ -312,3 +329,30 @@ describe 'RoomModel', ->
         doc.get("_id").should.be.an.instanceof ObjectId
         done()
       )
+
+  describe '既存のRoomに変更を加えて保存したとき', ->
+    beforeEach (done) ->
+      Factory.create 'room', (room) =>
+        @room = new RoomModel(room.toObject())
+        @roomId = @room.id
+        @room.set('title', 'ChangeTitle')
+        done()
+
+    it '正しく保存が行われていること', (done) ->
+      @room.save null, success: (model) =>
+        model.should.equal @room
+        model.should.have.property('id').with.equal @roomId
+        model.get('title').should.equal('ChangeTitle')
+        done()
+
+    it 'idにObjectId文字列があること', (done) ->
+      @room.save null, success: (model) =>
+        model.id.should.be.a 'string'
+        model.get('_id').equals(model.id).should.be.true
+        done()
+
+    it 'idにObjectIdがあること', (done) ->
+      @room.save null, success: (model) =>
+        model.get('_id').toString().should.equal model.id
+        model.get('_id').should.be.an.instanceof ObjectId
+        done()

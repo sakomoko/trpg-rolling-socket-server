@@ -3,12 +3,13 @@ Message = require('./schema/message-schema')
 User = require('./schema/user-schema')
 RoomSchema = require './schema/room-schema'
 Dice = require './dice'
+ObjectId = require('mongoose').Types.ObjectId;
 
 class RoomModel extends Backbone.Model
 
   defaults:
-    is_static: false
-    is_closed: false
+    static: false
+    closed: false
 
   message: Message
 
@@ -19,6 +20,15 @@ class RoomModel extends Backbone.Model
   initialize: () ->
     @joinedMembers = {}
     @bufferSize = 50
+
+    if @id and @id instanceof ObjectId
+      @set '_id', @id
+    else if @id
+      @set '_id', new ObjectId(@id)
+
+    id = @get '_id'
+    @id = id  if id
+    @id = @id.toString?() || @id if @id
 
   addBuffer: (client, data, callback) ->
     @user.findOne({socket_token: client.socket_token}, (err, doc) =>
@@ -88,5 +98,13 @@ class RoomModel extends Backbone.Model
           json = doc.toJSON()
           json.id = json._id.toString()
           options.success(json)
+      when "update"
+        @schema.findById model.id, (err, doc) ->
+          doc.set model.attributes
+          doc.save (err) ->
+            throw err if err
+            json = doc.toJSON()
+            json.id = json._id.toString()
+            options.success(json)
 
 module.exports = RoomModel
