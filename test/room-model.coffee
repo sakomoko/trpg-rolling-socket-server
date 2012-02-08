@@ -17,6 +17,7 @@ class Socket
   to: -> @
   emit: ->
   leave: ->
+  get: ->
 
 Socket::__defineGetter__ 'broadcast', -> @
 
@@ -72,9 +73,23 @@ describe 'RoomModel', ->
         alias: 'AliasName'
         socket_token: 'uuid_token'
         body: 'text'
+      sinon.stub(@socket, 'get').callsArgWith(1, false, 'stored_token')
     afterEach ->
       @userStub.restore()
       @messageStub?.restore()
+
+    it 'socket#getが呼ばれること', (done) ->
+      @room.addBuffer @socket, @request, =>
+        @socket.get.calledWith('socket_token').should.be.true
+        done()
+
+    it 'socket_tokenの取得に失敗したら例外が発生すること', ->
+      @socket.get.callsArgWith(1, true, 'stored_token')
+      (=> @room.addBuffer @socket, @request).should.throw()
+
+    it 'socket_tokenの取得に失敗したら例外が発生すること', ->
+      @socket.get.callsArgWith(1, false, '')
+      (=> @room.addBuffer @socket, @request).should.throw()
 
     it 'User#findOneが呼ばれること', (done) ->
       @room.addBuffer @socket, @request, =>

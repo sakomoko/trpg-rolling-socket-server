@@ -8,6 +8,8 @@ ObjectId = mongoose.Types.ObjectId
 
 class Socket extends EventEmitter
   to: -> @
+  set: ->
+  join: ->
 
 describe 'AppController', ->
 
@@ -30,6 +32,8 @@ describe 'AppController', ->
       @app.bindAllEvents @socket
       sinon.spy @socket, 'emit'
       sinon.spy @socket, 'to'
+      sinon.spy @socket, 'set'
+      sinon.spy @socket, 'join'
 
     describe 'getRoomLog', ->
       beforeEach ->
@@ -41,6 +45,43 @@ describe 'AppController', ->
         @model.getBuffer.called.should.be.true
       it 'pushMessageイベントが発火すること', ->
         @socket.emit.calledWith('pushMessage', @model.id, [{},{}]).should.be.true
+
+    describe 'joinMember', ->
+      beforeEach ->
+        @request =
+          id: 'id'
+          name: 'UserName'
+          socket_token: 'UserToken'
+        sinon.stub(@model, 'joinMember').callsArgWith 2, @request
+        sinon.stub(@model, 'getJoinedMembers').returns([@request])
+        @socket.emit 'joinMember', @model.id, @request
+
+      it 'rooms.getが呼ばれること', ->
+        @stub.calledWith(@model.id).should.be.true
+
+      it 'room.joinMemberが呼ばれること', ->
+        @model.joinMember.calledWith(@socket, @request).should.be.true
+
+      it 'successJoinedイベントが発火すること', ->
+        @socket.emit.calledWith('successJoined', @model.id, @request).should.be.true
+
+      it 'room.getJoinedMembersが呼ばれること', ->
+        @model.getJoinedMembers.called.should.be.true
+
+      it 'socketにsocket_tokenが書き込まれること', ->
+        @socket.set.calledWith('socket_token', @request.socket_token).should.be.true
+
+      it 'socket#joinが呼ばれること', ->
+        @socket.join.calledWith(@model.id).should.be.true
+
+      it '第三引数に渡したコールバックが呼ばれること',(done) ->
+        @socket.emit 'joinMember', @model.id, @request, ->
+          done()
+
+      it '認証に失敗したらsocketFaildイベントを発火させること', ->
+        @model.joinMember.throws(new Error('auth error!'))
+        @socket.emit 'joinMember', @model.id, @request
+        @socket.emit.calledWith('socketFaild', 'auth error!').should.be.true
 
     describe 'getJoinedMembers', ->
       it 'updateJoinedMembersイベントが発火すること', ->

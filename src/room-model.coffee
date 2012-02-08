@@ -31,21 +31,22 @@ class RoomModel extends Backbone.Model
     @id = @id.toString?() || @id if @id
 
   addBuffer: (client, data, callback) ->
-    @user.findOne({socket_token: client.socket_token}, (err, doc) =>
-      throw new Error("unmatched socket token.") unless doc
-      if dice_string = Dice.searchString data.body
-        rolled = new Dice dice_string
-        data.dice = rolled.rollResult
-        data.body = Dice.removeString data.body
-      message = new @message(data)
-      message.alias = doc.name unless data.alias
-      message.user_id = doc.id
-      message.room_id = @id
-      message.save((err) ->
-        throw err if err
-        callback(message.toObject())
-      )
-    )
+    client.get 'socket_token', (err, socket_token) =>
+      throw new Error("can not find stored soket token.") if err or not socket_token
+      @user.findOne {socket_token: socket_token}, (err, doc) =>
+        throw new Error("unmatched socket token.") unless doc
+        if dice_string = Dice.searchString data.body
+          rolled = new Dice dice_string
+          data.dice = rolled.rollResult
+          data.body = Dice.removeString data.body
+        message = new @message(data)
+        message.alias = doc.name unless data.alias
+        message.user_id = doc.id
+        message.room_id = @id
+        message.save (err) ->
+          throw err if err
+          callback(message.toObject())
+
 
   getBuffer: (callback) ->
     @message.find({room_id: @id}, {}, {sort:{_id: -1}, limit: @bufferSize}, (err, docs) =>
@@ -76,9 +77,7 @@ class RoomModel extends Backbone.Model
         name: doc.name
       data.alias = user.alias if user.alias
       @joinedMembers[client.id] = data
-      client.socket_token = user.socket_token
-      client.join @id
-      callback(client) if callback
+      callback(doc) if callback
     )
 
   leaveMember: (client) ->
