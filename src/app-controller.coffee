@@ -17,12 +17,12 @@ class AppController
       socket.on 'joinMember', (roomId, user, fn) =>
         try
           @rooms.get(roomId).joinMember socket, user, (userDoc) =>
-            socket.set 'socket_token', userDoc.socket_token
-            socket.join roomId
-            socket.emit('successJoined', roomId, user)
-            members = @rooms.get(roomId).getJoinedMembers()
-            socket.to(roomId).emit('updateJoinedMembers', roomId, members)
-            fn() if fn
+            socket.set 'socket_token', userDoc.socket_token, =>
+              socket.join roomId
+              socket.emit('successJoined', roomId, user)
+              members = @rooms.get(roomId).getJoinedMembers()
+              socket.to(roomId).emit('updateJoinedMembers', roomId, members)
+              fn() if fn
         catch e
           socket.emit('socketFaild', e.message)
 

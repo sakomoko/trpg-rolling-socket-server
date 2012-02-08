@@ -32,7 +32,6 @@ describe 'AppController', ->
       @app.bindAllEvents @socket
       sinon.spy @socket, 'emit'
       sinon.spy @socket, 'to'
-      sinon.spy @socket, 'set'
       sinon.spy @socket, 'join'
 
     describe 'getRoomLog', ->
@@ -54,6 +53,8 @@ describe 'AppController', ->
           socket_token: 'UserToken'
         sinon.stub(@model, 'joinMember').callsArgWith 2, @request
         sinon.stub(@model, 'getJoinedMembers').returns([@request])
+        sinon.stub @socket, 'set'
+        @socket.set.callsArg(2)
         @socket.emit 'joinMember', @model.id, @request
 
       it 'rooms.getが呼ばれること', ->
