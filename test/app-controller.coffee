@@ -28,7 +28,8 @@ describe 'AppController', ->
       @model = @app.rooms.create({id: new ObjectId(), title: 'Room1'})
       @stub = sinon.stub(@app.rooms, 'get').returns(@model)
       @app.bindAllEvents @socket
-      @spy = sinon.spy @socket, 'emit'
+      sinon.spy @socket, 'emit'
+      sinon.spy @socket, 'to'
 
     describe 'getJoinedMembers', ->
       it 'updateJoinedMembersイベントが発火すること', ->
@@ -49,10 +50,13 @@ describe 'AppController', ->
       it 'callback内でpushMessageイベントを発火させること', ->
         @socket.emit.secondCall.calledWith('pushMessage', @model.id, @request).should.be.true
 
+      it 'メッセージはto(roomId)で配信されること', ->
+        @socket.to.calledWith(@model.id).should.be.true
+
       describe '例外が発生したら', ->
         beforeEach ->
           @modelStub.throws(new Error('error!!'))
           @request = body: 'faild message'
           @socket.emit('sendMessage', @model.id, @request)
         it '例外メッセージを配信すること', ->
-          @spy.lastCall.calledWith('socketFaild', 'error!!').should.be.true
+          @socket.emit.lastCall.calledWith('socketFaild', 'error!!').should.be.true
