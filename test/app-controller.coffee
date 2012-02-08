@@ -31,6 +31,17 @@ describe 'AppController', ->
       sinon.spy @socket, 'emit'
       sinon.spy @socket, 'to'
 
+    describe 'getRoomLog', ->
+      beforeEach ->
+        sinon.stub(@model, 'getBuffer').callsArgWith(0, [{},{}])
+        @socket.emit 'getRoomLog', @model.id
+      it 'rooms.getが呼ばれること', ->
+        @stub.calledWith(@model.id).should.be.true
+      it 'room.getBufferが呼ばれること', ->
+        @model.getBuffer.called.should.be.true
+      it 'pushMessageイベントが発火すること', ->
+        @socket.emit.calledWith('pushMessage', @model.id, [{},{}]).should.be.true
+
     describe 'getJoinedMembers', ->
       it 'updateJoinedMembersイベントが発火すること', ->
         @socket.emit 'getJoinedMembers', @model.id

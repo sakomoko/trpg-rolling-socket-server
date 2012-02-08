@@ -10,7 +10,7 @@ class AppController
   events:
     getRoomLog: (socket) ->
       socket.on 'getRoomLog', (roomId) =>
-        @rooms.get(roomId).getBuffer socket, (socket, docs)->
+        @rooms.get(roomId).getBuffer (docs)->
           socket.emit 'pushMessage', roomId, docs
 
     joinMember: (socket) ->
