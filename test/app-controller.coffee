@@ -16,6 +16,10 @@ Socket::__defineGetter__ 'broadcast', ->
   @broadcasted = true
   @
 
+class Document
+  toJSON: ->
+    @
+
 describe 'AppController', ->
 
   describe '#bindAllEvents', ->
@@ -32,12 +36,16 @@ describe 'AppController', ->
     beforeEach ->
       @socket = new Socket
       @app = new App
-      @model = @app.rooms.create({id: new ObjectId(), title: 'Room1'})
+      @model = new @app.rooms.model {id: new ObjectId(), title: 'Room'}
+      @app.rooms.add @model
       @stub = sinon.stub(@app.rooms, 'get').withArgs(@model.id).returns(@model)
       @app.bindAllEvents @socket
       sinon.spy @socket, 'emit'
       sinon.spy @socket, 'to'
       sinon.spy @socket, 'join'
+
+    afterEach ->
+      @app.rooms.get.restore?()
 
     describe 'getRoomLog', ->
       beforeEach ->
@@ -152,7 +160,8 @@ describe 'AppController', ->
 
     describe 'getRoomList', ->
       beforeEach ->
-        @joinedRoom = @app.rooms.create id: new ObjectId, title: 'JoinedRoom'
+        @joinedRoom = new @app.rooms.model id: new ObjectId, title: 'JoinedRoom'
+        @app.rooms.add @joinedRoom
         @joinedRoom.joinedMembers[@socket.id] = true
         @roomList = [
           {id: @model.id, title: @model.get('title')}
@@ -174,3 +183,32 @@ describe 'AppController', ->
       it '自分が入室している部屋は除外されていること', ->
         @roomList.pop()
         @socket.emit.getCall(1).calledWithExactly('pushRoomList', @roomList).should.be.true
+
+    describe 'connectRoom', ->
+      it 'socket#joinが呼ばれること', ->
+        @socket.emit 'connectRoom', @model.id
+        @socket.join.calledWith(@model.id).should.be.true
+
+      it 'callbackが実行されること', (done) ->
+        @socket.emit 'connectRoom', @model.id, done
+
+      describe 'メモリ上にない部屋に接続した場合', ->
+        beforeEach ->
+          @app.rooms.get.restore()
+          @newRoomId = new ObjectId
+          doc = new Document
+          doc.id = @newRoomId
+          doc.title = 'NewRoom'
+          @schemaStub = sinon.stub(@app.rooms.model::schema, 'findById').callsArgWith 1, false, doc
+          @socket.emit 'connectRoom', @newRoomId
+
+        afterEach ->
+          @schemaStub.restore()
+
+        it 'DBから検索してコレクションに加えること', ->
+          @app.rooms.get(@newRoomId.toString()).should.be.an.instanceof @app.rooms.model
+          @socket.join.calledWith(@newRoomId).should.be.true
+
+        it 'DBに存在しなければ例外が発生すること', ->
+          @app.rooms.model::schema.findById.callsArgWith 1, false, null
+          (=> @socket.emit 'connectRoom', @newRoomId).should.throw()

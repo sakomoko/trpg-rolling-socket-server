@@ -1,4 +1,4 @@
-require('should')
+should = require('should')
 async = require('async')
 sinon = require('sinon')
 uuid = require('node-uuid')
@@ -214,9 +214,9 @@ describe 'RoomModel', ->
         name: 'joinedName'
     it 'socketを渡すと、joinした際のデータを得られること', ->
       @room.getJoinedMember(@socket).should.eql @data
-    it 'データがなければfalseを返すこと', ->
+    it 'データがなければundefinedを返すこと', ->
       @socket.id = new ObjectId
-      @room.getJoinedMember(@socket).should.be.false
+      should.not.exist @room.getJoinedMember(@socket)
 
   describe '#getJoinedMembers', ->
 

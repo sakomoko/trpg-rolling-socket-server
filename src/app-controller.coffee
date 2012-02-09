@@ -55,4 +55,18 @@ class AppController
             (not model or not model.getJoinedMember socket)
           socket.emit 'pushRoomList', roomList
 
+    connectRoom: (socket) ->
+      socket.on 'connectRoom', (roomId, cb) =>
+        room = @rooms.get roomId
+        if room
+          socket.join room.id
+          cb?()
+        else
+          room = new @rooms.model id: roomId
+          room.fetch success: (model) =>
+            @rooms.add model
+            socket.join model.id
+            cb?()
+          , error: =>
+            throw new Error 'Room not find.'
 module.exports = AppController

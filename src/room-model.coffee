@@ -99,11 +99,17 @@ class RoomModel extends Backbone.Model
           options.success(json)
       when "update"
         @schema.findById model.id, (err, doc) ->
+          return options.error('Document not found.') unless doc
           doc.set model.attributes
           doc.save (err) ->
             throw err if err
             json = doc.toJSON()
             json.id = json._id.toString()
             options.success(json)
+      when "read"
+        @schema.findById model.id, (err, doc) ->
+          throw err if err
+          return options.error('Document not found.') unless doc
+          options.success doc.toJSON()
 
 module.exports = RoomModel
