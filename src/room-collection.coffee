@@ -10,9 +10,12 @@ class RoomCollection extends Backbone.Collection
   sync: (method, model, options) ->
     switch method
       when "read"
-        @schema.find({is_closed: 0}, {sort:{_id: 1}}, (err, docs) ->
+        @schema.find({closed_at: {$exits: false}}, {sort:{_id: 1}}, (err, docs) ->
           throw err if err
           options.success(docs)
         )
+
+  getOpenRooms: (cb) ->
+    @.sync "read", @, success: cb
 
 module.exports = RoomCollection
