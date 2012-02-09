@@ -129,21 +129,21 @@ describe 'Dice', ->
       it 'resultが配列を返すこと', ->
         @dice.result.should.eql([6,6])
 
-    describe 'typeにdice文字列"100d100+100*100"を指定したとき', ->
+    describe 'typeにdice文字列"100d100+100*10"を指定したとき', ->
       beforeEach ->
-        @dice = new Dice("100d100+100*100")
-      it 'randメソッドが10000回呼ばれること', ->
-        Math.random.callCount.should.equal(10000)
+        @dice = new Dice("100d100+100*10")
+      it 'randメソッドが1000回呼ばれること', ->
+        Math.random.callCount.should.equal(1000)
       it 'numが100を返すこと', ->
         @dice.num.should.equal(100)
       it 'typeが100を返すこと', ->
         @dice.type.should.equal(100)
       it 'rollCountが100を返すこと', ->
-        @dice.rollCount.should.equal(100)
+        @dice.rollCount.should.equal(10)
       it 'diceStringがダイス文字列を返すこと', ->
-        @dice.diceString.should.equal("100d100+100*100")
+        @dice.diceString.should.equal("100d100+100*10")
       it 'resultが配列を返すこと', ->
-        @dice.result.length.should.equal(100)
+        @dice.result.length.should.equal(10)
 
 
   describe '::searchString', ->
