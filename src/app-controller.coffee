@@ -47,4 +47,12 @@ class AppController
         catch e
           socket.emit 'socketFaild', e.message
 
+    getRoomList: (socket) ->
+      socket.on 'getRoomList', =>
+        @rooms.getOpenRooms (roomList) =>
+          roomList = roomList.filter (doc)=>
+            model = @rooms.get(doc.id.toString())
+            (not model or not model.getJoinedMember socket)
+          socket.emit 'pushRoomList', roomList
+
 module.exports = AppController

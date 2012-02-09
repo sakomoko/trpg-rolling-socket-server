@@ -7,6 +7,7 @@ App = require '../lib/app-controller'
 ObjectId = mongoose.Types.ObjectId
 
 class Socket extends EventEmitter
+  constructor: (@id = new ObjectId)->
   to: -> @
   set: ->
   join: ->
@@ -32,7 +33,7 @@ describe 'AppController', ->
       @socket = new Socket
       @app = new App
       @model = @app.rooms.create({id: new ObjectId(), title: 'Room1'})
-      @stub = sinon.stub(@app.rooms, 'get').returns(@model)
+      @stub = sinon.stub(@app.rooms, 'get').withArgs(@model.id).returns(@model)
       @app.bindAllEvents @socket
       sinon.spy @socket, 'emit'
       sinon.spy @socket, 'to'
@@ -150,7 +151,26 @@ describe 'AppController', ->
         @socket.emit.calledWith('socketFaild').should.be.true
 
     describe 'getRoomList', ->
+      beforeEach ->
+        @joinedRoom = @app.rooms.create id: new ObjectId, title: 'JoinedRoom'
+        @joinedRoom.joinedMembers[@socket.id] = true
+        @roomList = [
+          {id: @model.id, title: @model.get('title')}
+          {id: 'room1', title: 'Room1'}
+          {id: 'room2', title: 'Room2'}
+          {id: 'room3', title: 'Room3'}
+          {id: @joinedRoom.id, title: @joinedRoom.get('title')}
+        ]
+        @app.rooms.get.withArgs(@joinedRoom.id).returns @joinedRoom
+        sinon.stub(@app.rooms, 'getOpenRooms').callsArgWith 0, @roomList
+        @socket.emit 'getRoomList'
 
-      it 'rooms.getOpenRoomsが呼ばれること'
-      it 'pushRoomListが発火すること'
-      it '自分が入室している部屋は除外されていること'
+      it 'rooms.getOpenRoomsが呼ばれること', ->
+        @app.rooms.getOpenRooms.called.should.be.true
+
+      it 'pushRoomListが発火すること', ->
+        @socket.emit.getCall(1).calledWith('pushRoomList').should.be.true
+
+      it '自分が入室している部屋は除外されていること', ->
+        @roomList.pop()
+        @socket.emit.getCall(1).calledWithExactly('pushRoomList', @roomList).should.be.true
