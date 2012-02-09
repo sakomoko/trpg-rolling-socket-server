@@ -11,6 +11,10 @@ class Socket extends EventEmitter
   set: ->
   join: ->
 
+Socket::__defineGetter__ 'broadcast', ->
+  @broadcasted = true
+  @
+
 describe 'AppController', ->
 
   describe '#bindAllEvents', ->
@@ -113,3 +117,40 @@ describe 'AppController', ->
           @socket.emit('sendMessage', @model.id, @request)
         it '例外メッセージを配信すること', ->
           @socket.emit.lastCall.calledWith('socketFaild', 'error!!').should.be.true
+
+    describe 'sendTypingStatus', ->
+      beforeEach ->
+        user =
+          id: 'UserId'
+          alias: 'UserAlias'
+        sinon.stub(@model, 'getJoinedMember').returns user
+        @socket.emit 'sendTypingStatus', @model.id, true
+
+      it 'model.getJoinedMemberが呼ばれること', ->
+        @model.getJoinedMember.calledWith(@socket).should.be.true
+
+      it 'socket#broadcastが呼ばれること', ->
+        @socket.broadcasted.should.be.true
+
+      it 'socket#toが呼ばれること', ->
+        @socket.to.calledWith(@model.id).should.be.true
+
+      it 'pushTypingStatusイベントが発火されること', ->
+        @socket.emit.calledWith('pushTypingStatus').should.be.true
+
+      it 'pushTypingStatusにroomIdと通知者のid,aliasのオブジェクト、isTypingの真偽値が渡されること', ->
+        user =
+          id: 'UserId'
+          alias: 'UserAlias'
+        @socket.emit.calledWith('pushTypingStatus', @model.id, user, true).should.be.true
+
+      it 'ユーザー情報が取得できなかったらsocketFaildを発火させること', ->
+        @model.getJoinedMember.returns undefined
+        @socket.emit 'sendTypingStatus', @model.id, true
+        @socket.emit.calledWith('socketFaild').should.be.true
+
+    describe 'getRoomList', ->
+
+      it 'rooms.getOpenRoomsが呼ばれること'
+      it 'pushRoomListが発火すること'
+      it '自分が入室している部屋は除外されていること'

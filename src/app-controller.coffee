@@ -38,5 +38,13 @@ class AppController
         catch e
           socket.emit('socketFaild', e.message)
 
+    sendTypingStatus: (socket) ->
+      socket.on 'sendTypingStatus', (roomId, isTyping) =>
+        try
+          user = @rooms.get(roomId).getJoinedMember socket
+          throw new Error('user has not joined room.') unless user
+          socket.broadcast.to(roomId).emit 'pushTypingStatus', roomId, user, isTyping
+        catch e
+          socket.emit 'socketFaild', e.message
 
 module.exports = AppController
