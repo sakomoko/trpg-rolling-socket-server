@@ -82,8 +82,6 @@ class RoomModel extends Backbone.Model
 
   leaveMember: (client) ->
     delete @joinedMembers[client.id]
-    client.broadcast.to(@id).emit('updateJoinedMembers', @id, @joinedMembers);
-    client.leave @id
 
   dateFormat: (date) ->
     date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).substr(-2) + "-" + ("0" + date.getDate()).substr(-2) + " " + ("0" + date.getHours()).substr(-2) + ":" + ("0" + date.getMinutes()).substr(-2) + ":" + ("0" + date.getSeconds()).substr(-2)

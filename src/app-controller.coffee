@@ -55,6 +55,16 @@ class AppController
             (not model or not model.getJoinedMember socket)
           socket.emit 'pushRoomList', roomList
 
+    leaveRoom: (socket) ->
+      socket.on 'leaveRoom', (roomId, cb) =>
+        room = @rooms.get roomId
+        throw new Error('Room not found.') unless room
+        room.leaveMember socket
+        socket.leave room.id
+        socket.broadcast.to(roomId).emit 'updateJoinedMembers', room.id, room.getJoinedMembers()
+        @rooms.remove room.id if Object.keys(room.joinedMembers).length is 0
+        cb?()
+
     connectRoom: (socket) ->
       socket.on 'connectRoom', (roomId, cb) =>
         room = @rooms.get roomId

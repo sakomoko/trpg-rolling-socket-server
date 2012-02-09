@@ -11,6 +11,7 @@ class Socket extends EventEmitter
   to: -> @
   set: ->
   join: ->
+  leave: ->
 
 Socket::__defineGetter__ 'broadcast', ->
   @broadcasted = true
@@ -38,21 +39,23 @@ describe 'AppController', ->
       @app = new App
       @model = new @app.rooms.model {id: new ObjectId(), title: 'Room'}
       @app.rooms.add @model
-      @stub = sinon.stub(@app.rooms, 'get').withArgs(@model.id).returns(@model)
+
       @app.bindAllEvents @socket
       sinon.spy @socket, 'emit'
       sinon.spy @socket, 'to'
       sinon.spy @socket, 'join'
+      sinon.spy @socket, 'leave'
 
     afterEach ->
       @app.rooms.get.restore?()
 
     describe 'getRoomLog', ->
       beforeEach ->
+        sinon.spy @app.rooms, 'get'
         sinon.stub(@model, 'getBuffer').callsArgWith(0, [{},{}])
         @socket.emit 'getRoomLog', @model.id
       it 'rooms.getが呼ばれること', ->
-        @stub.calledWith(@model.id).should.be.true
+        @app.rooms.get.calledWith(@model.id).should.be.true
       it 'room.getBufferが呼ばれること', ->
         @model.getBuffer.called.should.be.true
       it 'pushMessageイベントが発火すること', ->
@@ -64,6 +67,7 @@ describe 'AppController', ->
           id: 'id'
           name: 'UserName'
           socket_token: 'UserToken'
+        sinon.spy @app.rooms, 'get'
         sinon.stub(@model, 'joinMember').callsArgWith 2, @request
         sinon.stub(@model, 'getJoinedMembers').returns([@request])
         sinon.stub @socket, 'set'
@@ -71,7 +75,7 @@ describe 'AppController', ->
         @socket.emit 'joinMember', @model.id, @request
 
       it 'rooms.getが呼ばれること', ->
-        @stub.calledWith(@model.id).should.be.true
+        @app.rooms.get.calledWith(@model.id).should.be.true
 
       it 'room.joinMemberが呼ばれること', ->
         @model.joinMember.calledWith(@socket, @request).should.be.true
@@ -170,7 +174,6 @@ describe 'AppController', ->
           {id: 'room3', title: 'Room3'}
           {id: @joinedRoom.id, title: @joinedRoom.get('title')}
         ]
-        @app.rooms.get.withArgs(@joinedRoom.id).returns @joinedRoom
         sinon.stub(@app.rooms, 'getOpenRooms').callsArgWith 0, @roomList
         @socket.emit 'getRoomList'
 
@@ -184,6 +187,35 @@ describe 'AppController', ->
         @roomList.pop()
         @socket.emit.getCall(1).calledWithExactly('pushRoomList', @roomList).should.be.true
 
+    describe 'leaveRoom', ->
+      beforeEach ->
+        sinon.stub(@model, 'leaveMember')
+        @model.joinedMembers['member2'] = name: 'memberName'
+        @socket.emit 'leaveRoom', @model.id
+
+      it 'socket#leaveが呼ばれること', ->
+        @socket.leave.calledWith(@model.id).should.be.true
+
+      it 'model.leaveMemberが呼ばれること', ->
+        @model.leaveMember.called.should.be.true
+
+      it '参加者が残っていればガベージされないこと', ->
+        @app.rooms.get(@model.id).should.equal @model
+
+      it 'コールバックが実行されること', (done) ->
+        @socket.emit 'leaveRoom', @model.id, =>
+          done()
+
+      it '入室者に入室が通知されること', ->
+        @socket.broadcasted.should.be.true
+        @socket.emit.calledWithExactly('updateJoinedMembers', @model.id, [{name: 'memberName'}]).should.be.true
+        @socket.to.calledWith(@model.id).should.be.true
+
+      it '入室者が誰もいなくなったらガベージコレクションを行うこと', ->
+        @model.joinedMembers = {}
+        @socket.emit 'leaveRoom', @model.id
+        should.equal undefined, @app.rooms.get(@model.id)
+
     describe 'connectRoom', ->
       it 'socket#joinが呼ばれること', ->
         @socket.emit 'connectRoom', @model.id
@@ -194,7 +226,6 @@ describe 'AppController', ->
 
       describe 'メモリ上にない部屋に接続した場合', ->
         beforeEach ->
-          @app.rooms.get.restore()
           @newRoomId = new ObjectId
           doc = new Document
           doc.id = @newRoomId
