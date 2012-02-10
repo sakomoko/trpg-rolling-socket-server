@@ -62,7 +62,7 @@ class AppController
         room.leaveMember socket
         socket.leave room.id
         socket.broadcast.to(roomId).emit 'updateJoinedMembers', room.id, room.getJoinedMembers()
-        @rooms.remove room.id if Object.keys(room.joinedMembers).length is 0
+        @rooms.remove room.id unless socket.manager.rooms['/' + room.id]
         cb?()
 
     connectRoom: (socket) ->
@@ -79,4 +79,10 @@ class AppController
             cb?()
           , error: =>
             throw new Error 'Room not find.'
+
+    disconnect: (socket) ->
+      socket.on 'disconnect', =>
+        for key, value of socket.manager.roomClients[socket.id]
+          socket.emit 'leaveRoom', key.slice 1
+
 module.exports = AppController

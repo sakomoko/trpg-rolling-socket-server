@@ -7,7 +7,7 @@ App = require '../lib/app-controller'
 ObjectId = mongoose.Types.ObjectId
 
 class Socket extends EventEmitter
-  constructor: (@id = new ObjectId)->
+  constructor: (@id = new ObjectId, @manager = new Manager)->
   to: -> @
   set: ->
   join: ->
@@ -16,6 +16,9 @@ class Socket extends EventEmitter
 Socket::__defineGetter__ 'broadcast', ->
   @broadcasted = true
   @
+
+class Manager
+  constructor: (@rooms = {}, @roomClients = {}) ->
 
 class Document
   toJSON: ->
@@ -191,6 +194,9 @@ describe 'AppController', ->
       beforeEach ->
         sinon.stub(@model, 'leaveMember')
         @model.joinedMembers['member2'] = name: 'memberName'
+        @socket.manager.rooms['/'+@model.id] = [@socket.id]
+        @socket.manager.roomClients[@socket.id] = {}
+        @socket.manager.roomClients[@socket.id]['/'+@model.id] = true
         @socket.emit 'leaveRoom', @model.id
 
       it 'socket#leaveが呼ばれること', ->
@@ -213,6 +219,7 @@ describe 'AppController', ->
 
       it '入室者が誰もいなくなったらガベージコレクションを行うこと', ->
         @model.joinedMembers = {}
+        delete @socket.manager.rooms['/'+@model.id]
         @socket.emit 'leaveRoom', @model.id
         should.equal undefined, @app.rooms.get(@model.id)
 
@@ -243,3 +250,26 @@ describe 'AppController', ->
         it 'DBに存在しなければ例外が発生すること', ->
           @app.rooms.model::schema.findById.callsArgWith 1, false, null
           (=> @socket.emit 'connectRoom', @newRoomId).should.throw()
+
+    describe 'disconnect', ->
+      beforeEach ->
+        @joinedRoom = new @app.rooms.model id: new ObjectId, title: 'JoinedRoom'
+        @app.rooms.add @joinedRoom
+        @model.joinedMembers['otherClinet1'] = true
+        @socket.manager.rooms['/'+@joinedRoom.id] = [@socket.id]
+        @socket.manager.rooms['/'+@model.id] = [@socket.id, 'otherClientId']
+        @socket.manager.roomClients[@socket.id] = {}
+        @socket.manager.roomClients[@socket.id]['/'+@joinedRoom.id] = true
+        @socket.manager.roomClients[@socket.id]['/'+@model.id] = true
+
+        @joinedRoom.joinedMembers[@socket.id] = true
+        @socket.emit 'disconnect'
+
+      it 'leaveRoomイベントが発火すること', ->
+        @socket.emit.calledWithExactly('leaveRoom', @joinedRoom.id).should.be.true
+      it '入室していた部屋から情報が削除されていること', ->
+        should.equal(@joinedRoom.getJoinedMember(@socket), undefined)
+      it 'leaveRoomの際にガベージコレクションの処理を行うこと', ->
+        delete @socket.manager.rooms['/'+@joinedRoom.id]
+        @socket.emit 'disconnect'
+        @app.rooms.models.should.have.length 1
