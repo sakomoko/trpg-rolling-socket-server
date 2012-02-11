@@ -10,7 +10,7 @@ class RoomCollection extends Backbone.Collection
   sync: (method, model, options) ->
     switch method
       when "read"
-        @schema.find({closed_at: {$exits: false}}, {sort:{_id: 1}}, (err, docs) ->
+        @schema.find({closed: false}, {}, {sort: {_id: 1}}, (err, docs) ->
           throw err if err
           options.success(docs)
         )

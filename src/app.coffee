@@ -1,29 +1,70 @@
-express = require('express')
-sio  = require('socket.io')
+io = null
+app = null
+#
+# Module dependencies.
+#
+#
 mongoose = require('mongoose')
+database =
+  production: 'mongodb://localhost/trpg_rolling'
+  development: 'mongodb://localhost/trpg_rolling_development'
+  test: 'mongodb://localhost/trpg_rolling_test'
 
-AppController = require('./app-controller')
+env = process.env.NODE_ENV ? 'test'
 
-app = express.createServer()
-port = 55555
+exports.run = (port=5000, cb) ->
+  mongoose.connect(database[env])
+  exports.app = app = new exports.AppController()
+  app.rooms.fetch reset: true
+  exports.io = io = require('socket.io').listen port, cb
 
-mongoose.connect('mongodb://localhost/trpg-rolling')
+  io.configure "production", ->
+    io.enable 'browser client minification'
+    io.enable 'browser client etag'
+    io.enable 'browser client gzip'
+    io.set "log level", 1
+    io.set('transports', [
+      'websocket'
+      'flashsocket'
+       'htmlfile'
+      'xhr-polling'
+      'jsonp-polling'
+    ])
+    process.on "uncaughtException", (err) ->
+      io.log.error "Caught exception: " + err
 
-app.get "/", (req, res) ->
-  res.send "Not Found.", 404
+  io.sockets.on 'connection', (socket) ->
+    app.bindAllEvents socket
 
-app.listen port
-io = sio.listen(app)
-io.configure "production", ->
-  io.set "log level", 1
-  io.enable "browser client etag"
 
-io.sockets.on "connection", (socket) ->
-  controller.attachEventHandler socket
-  socket.on "disconnect", ->
-    controller.disconnect socket
+  io.log.info "Server running at http://127.0.0.1:" + port + "/"
+  app
 
-process.on "uncaughtException", (err) ->
-  console.log "Caught exception: " + err
+exports.stop = (cb) ->
+  io.server.close()
+  mongoose.disconnect ->
+    cb?()
 
-console.log "Server running at http://127.0.0.1:" + port + "/"
+
+
+#
+# AppController constructor.
+#
+#
+exports.AppController = require('./app-controller')
+
+#
+# RoomCollection constructor.
+#
+#
+exports.RoomCollection = require('./room-collection')
+
+#
+# RoomModel constructor
+#
+#
+exports.RoomModel = require('./room-model')
+
+
+
+
