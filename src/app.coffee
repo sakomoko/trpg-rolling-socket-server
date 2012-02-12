@@ -16,7 +16,7 @@ exports.run = (port=5000, cb) ->
   mongoose.connect(database[env])
   exports.app = app = new exports.AppController()
   app.rooms.fetch reset: true
-  exports.io = io = require('socket.io').listen port, cb
+  app.io = io = require('socket.io').listen port, cb
 
   io.configure "production", ->
     io.enable 'browser client minification'
