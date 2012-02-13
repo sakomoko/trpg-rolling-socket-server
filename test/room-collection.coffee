@@ -20,7 +20,7 @@ describe 'RoomCollection', ->
       {id: 1, title: 'Room1'}
       {id: 2, title: 'Room2'}
     ]
-    @schemaStub = sinon.stub(@rooms.schema, 'find').callsArgWith 2, false, @docs
+    @schemaStub = sinon.stub(@rooms.schema, 'find').callsArgWith 3, false, @docs
     @rooms.fetch success: (docs) =>
       done()
 
