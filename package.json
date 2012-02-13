@@ -25,6 +25,6 @@
 	"main": "./lib/app.js",
 	"engines": {"node": ">= 0.4.0"},
 	"scripts": {
-		"test": "mocha"
+		"test": "make test"
 	}
 }
