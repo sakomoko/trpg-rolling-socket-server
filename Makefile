@@ -1,5 +1,4 @@
  test:
-	./node_modules/.bin/mocha \
-	 --reporter spec --growl
+	./node_modules/.bin/mocha
 
  .PHONY: test
